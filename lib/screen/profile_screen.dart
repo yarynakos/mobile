@@ -37,80 +37,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveChanges() async {
+    final user = await _userRepository.getUser();
+    if (user == null) return;
+
     final updatedUser = User(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
-      password: (await _userRepository.getUser())?.password ?? '',
+      password: user.password,
     );
 
     await _userRepository.saveUser(updatedUser);
+
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile updated')),
+    );
   }
 
   Future<void> _logout() async {
-    await _userRepository.clearUser();
-    if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      await _userRepository.clearUser();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final double width =
-        MediaQuery.of(context).size.width > 600 ? 400 : double.infinity;
+    MediaQuery.of(context).size.width > 600 ? 400 : double.infinity;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         backgroundColor: const Color(0xFF73E9EB),
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: width),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const CircleAvatar(
-                          radius: 50,
-                          backgroundImage: AssetImage(
-                            'assets/profile_placeholder.jpg',
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Full Name',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        CustomButton(
-                          text: 'Save Changes',
-                          onPressed: _saveChanges,
-                        ),
-                        const SizedBox(height: 10),
-                        CustomButton(text: 'Logout', onPressed: _logout),
-                      ],
-                    ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: width),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const CircleAvatar(
+                  radius: 50,
+                  backgroundImage:
+                  AssetImage('assets/profile_placeholder.jpg'),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    border: OutlineInputBorder(),
                   ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                CustomButton(
+                  text: 'Save Changes',
+                  onPressed: _saveChanges,
+                ),
+                const SizedBox(height: 10),
+                CustomButton(
+                  text: 'Logout',
+                  onPressed: _logout,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
