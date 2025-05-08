@@ -61,7 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final double width =
-        MediaQuery.of(context).size.width > 600 ? 400 : double.infinity;
+    MediaQuery.of(context).size.width > 600 ? 400 : double.infinity;
 
     return Scaffold(
       appBar: AppBar(

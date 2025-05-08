@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:my_project/data/local_user_repository.dart';
+import 'package:my_project/service/mqtt_service.dart';
 import 'package:my_project/widgets/custom_button.dart';
+
+class Plant {
+  final String name;
+  int? moisture;
+
+  Plant({required this.name, this.moisture});
+
+  String get status {
+    if (moisture == null) return 'Loading...';
+    if (moisture! < 40) return 'Needs Water';
+    if (moisture! < 60) return 'Healthy';
+    return 'Thriving';
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,11 +28,20 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _userEmail;
 
   final _userRepository = LocalUserRepository();
+  final List<Plant> _plants = [
+    Plant(name: 'aloe_vera'),
+    Plant(name: 'ficus'),
+    Plant(name: 'snake_plant'),
+    Plant(name: 'peace_lily'),
+  ];
+
+  final List<MqttService> _mqttServices = [];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _connectToMqtt();
   }
 
   Future<void> _loadUser() async {
@@ -27,6 +51,35 @@ class _HomeScreenState extends State<HomeScreen> {
         _userEmail = user?.email;
       });
     }
+  }
+
+  void _connectToMqtt() {
+    for (final plant in _plants) {
+      final currentPlant = plant;
+
+      final service = MqttService(
+        topic: 'sensor/soil/${currentPlant.name}',
+        onMessage: (payload) {
+          final value = int.tryParse(payload);
+          if (value != null) {
+            setState(() {
+              currentPlant.moisture = value;
+            });
+          }
+        },
+      );
+
+      _mqttServices.add(service);
+      service.connect();
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final service in _mqttServices) {
+      service.disconnect();
+    }
+    super.dispose();
   }
 
   @override
@@ -43,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 10),
             const Text(
               'Your Plants',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -55,12 +109,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 childAspectRatio: isWideScreen ? 3 : 2.5,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                children: const [
-                  PlantCard(name: 'Aloe Vera', status: 'Needs Water'),
-                  PlantCard(name: 'Ficus', status: 'Healthy'),
-                  PlantCard(name: 'Snake Plant', status: 'Needs Water'),
-                  PlantCard(name: 'Peace Lily', status: 'Thriving'),
-                ],
+                children:
+                    _plants.map((plant) {
+                      return PlantCard(
+                        name: _capitalize(plant.name.replaceAll('_', ' ')),
+                        status:
+                            '${plant.status} (${plant.moisture?.toString()
+                                ?? "--"}%)',
+                      );
+                    }).toList(),
               ),
             ),
             CustomButton(
@@ -72,6 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
 }
 
 class PlantCard extends StatelessWidget {
