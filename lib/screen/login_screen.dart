@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:my_project/data/local_user_repository.dart';
 import 'package:my_project/widgets/custom_button.dart';
@@ -13,43 +14,78 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
   final _userRepository = LocalUserRepository();
 
-  void _login() async {
-    if (_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAutoLogin();
+      _listenToConnection();
+    });
+  }
 
-      final success = await _userRepository.login(email, password);
+  Future<void> _checkAutoLogin() async {
+    final user = await _userRepository.getUser();
+    final hasInternet = await _hasInternet();
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (success) {
-        Navigator.pushNamed(context, '/home');
-      } else {
+    if (user != null) {
+      if (!hasInternet) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid email or password')),
+          const SnackBar(content: Text('No internet. Offline mode')),
         );
       }
+      Navigator.pushNamed(context, '/home');
     }
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Enter email';
-    if (!value.contains('@')) return 'Invalid email format';
-    return null;
+  Future<bool> _hasInternet() async {
+    final result = await Connectivity().checkConnectivity();
+    return result != ConnectivityResult.none;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) return 'Enter password';
-    return null;
+  void _listenToConnection() {
+    Connectivity().onConnectivityChanged.listen((result) {
+      if (result == ConnectivityResult.none && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connection lost')),
+        );
+      }
+    });
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!await _hasInternet()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No internet connection')),
+      );
+      return;
+    }
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    final success = await _userRepository.login(email, password);
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.pushNamed(context, '/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid credentials')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final double width =
-        MediaQuery.of(context).size.width > 600 ? 400 : double.infinity;
+    MediaQuery.of(context).size.width > 600 ? 400 : double.infinity;
 
     return Scaffold(
       appBar: AppBar(
@@ -78,7 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Email',
                       border: OutlineInputBorder(),
                     ),
-                    validator: _validateEmail,
+                    validator: (value) =>
+                    value == null || value.isEmpty || !value.contains('@')
+                        ? 'Enter a valid email'
+                        : null,
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
@@ -88,14 +127,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Password',
                       border: OutlineInputBorder(),
                     ),
-                    validator: _validatePassword,
+                    validator: (value) =>
+                    value == null || value.length < 6
+                        ? 'Password must be at least 6 characters'
+                        : null,
                   ),
                   const SizedBox(height: 20),
-                  CustomButton(text: 'Login', onPressed: _login),
+                  CustomButton(
+                    text: 'Login',
+                    onPressed: _login,
+                  ),
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),
                     child: const Text(
-                      'Don’t have an account? Register',
+                      'Don\'t have an account? Register',
                       style: TextStyle(color: Color(0xFF73E9EB)),
                     ),
                   ),
