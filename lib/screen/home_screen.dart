@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_project/data/local_user_repository.dart';
+import 'package:my_project/screen/view_last_message.dart';
+import 'package:my_project/screen/qr_scanner_screen.dart';
 import 'package:my_project/service/mqtt_service.dart';
 import 'package:my_project/widgets/custom_button.dart';
 
@@ -114,12 +116,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       return PlantCard(
                         name: _capitalize(plant.name.replaceAll('_', ' ')),
                         status:
-                            '${plant.status} (${plant.moisture?.toString()
-                                ?? "--"}%)',
+                            '${plant.status} (${plant.moisture?.toString() ?? "--"}%)',
                       );
                     }).toList(),
               ),
             ),
+            const SizedBox(height: 30),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Open Camera',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<QRScannerScreen>(
+                          builder: (context) => const QRScannerScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: CustomButton(
+                    text: 'View Last Message',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<MessageScreen>(
+                          builder: (context) => const MessageScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
             CustomButton(
               text: 'Go to Profile',
               onPressed: () => Navigator.pushNamed(context, '/profile'),
