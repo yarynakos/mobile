@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_project/data/local_user_repository.dart';
-import 'package:my_project/screen/view_last_message.dart';
 import 'package:my_project/screen/qr_scanner_screen.dart';
+import 'package:my_project/screen/view_last_message.dart';
 import 'package:my_project/service/mqtt_service.dart';
 import 'package:my_project/widgets/custom_button.dart';
 
@@ -116,7 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       return PlantCard(
                         name: _capitalize(plant.name.replaceAll('_', ' ')),
                         status:
-                            '${plant.status} (${plant.moisture?.toString() ?? "--"}%)',
+                            '${plant.status} '
+                                '(${plant.moisture?.toString() ?? "--"}%)',
                       );
                     }).toList(),
               ),
