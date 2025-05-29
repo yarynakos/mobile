@@ -81,13 +81,21 @@ class _MessageScreenState extends State<MessageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Last message from ESP32')),
+      appBar: AppBar(
+        title: const Text(
+          'Last message from ESP32',
+          style: TextStyle(color: Colors.white, fontSize: 22),
+        ),
+        backgroundColor: const Color(0xFF73E9EB),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Center(
-        child: _isReading
+        child:
+        _isReading
             ? const CircularProgressIndicator()
             : Text(
           _receivedData,
-          style: const TextStyle(fontSize: 20),
+          style: const TextStyle(fontSize: 18),
           textAlign: TextAlign.center,
         ),
       ),
